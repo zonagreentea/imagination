@@ -8,3 +8,5 @@ python -m imagination
 ## Install (editable)
 pip install -e .
 imagination
+
+- [Zone update](imagination_zone.md)
