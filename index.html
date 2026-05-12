@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0,user-scalable=no">
+
+<title>imagination*</title>
+
+<style>
+html,body{
+  margin:0;
+  overflow:hidden;
+  background:black;
+  touch-action:none;
+}
+
+canvas{
+  width:100vw;
+  height:100vh;
+  display:block;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="screen"></canvas>
+
+<script type="module">
+
+const canvas = document.getElementById("screen");
+const ctx = canvas.getContext("2d");
+
+function resize(){
+  canvas.width = innerWidth * devicePixelRatio;
+  canvas.height = innerHeight * devicePixelRatio;
+}
+
+resize();
+addEventListener("resize", resize);
+
+const runtime = {
+  time:0,
+  dt:0,
+  last:0,
+  nodes:[]
+};
+
+class Node{
+  constructor(x,y){
+    this.x = x;
+    this.y = y;
+    this.r = 40;
+  }
+
+  update(dt){
+    this.r =
+      40 +
+      Math.sin(runtime.time * 0.002) * 10;
+  }
+
+  render(ctx){
+    ctx.beginPath();
+    ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
+    ctx.strokeStyle = "white";
+    ctx.stroke();
+  }
+}
+
+runtime.nodes.push(
+  new Node(innerWidth/2, innerHeight/2)
+);
+
+function frame(t){
+
+  runtime.dt = t - runtime.last;
+  runtime.last = t;
+  runtime.time += runtime.dt;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ctx.save();
+  ctx.scale(devicePixelRatio,devicePixelRatio);
+
+  for(const node of runtime.nodes){
+    node.update(runtime.dt);
+    node.render(ctx);
+  }
+
+  ctx.restore();
+
+  requestAnimationFrame(frame);
+}
+
+requestAnimationFrame(frame);
+
+addEventListener("pointerdown", e => {
+
+  runtime.nodes.push(
+    new Node(e.clientX,e.clientY)
+  );
+
+});
+
+</script>
+
+</body>
+</html>
