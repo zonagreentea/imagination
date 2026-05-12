@@ -1,107 +1,186 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport"
-content="width=device-width,initial-scale=1.0,user-scalable=no">
-
-<title>imagination*</title>
-
-<style>
-html,body{
-  margin:0;
-  overflow:hidden;
-  background:black;
-  touch-action:none;
-}
-
-canvas{
-  width:100vw;
-  height:100vh;
-  display:block;
-}
-</style>
+  <meta charset="utf-8" />
+  <title>imagination engine v1.1 (no gamba)</title>
+  <style>
+    html,body{
+      margin:0;
+      overflow:hidden;
+      background:#000;
+      color:#fff;
+      font-family:monospace;
+    }
+    canvas{display:block;}
+  </style>
 </head>
-
 <body>
 
-<canvas id="screen"></canvas>
+<canvas id="c"></canvas>
 
-<script type="module">
+<script>
+const ctx = c.getContext("2d");
+c.width = innerWidth;
+c.height = innerHeight;
 
-const canvas = document.getElementById("screen");
-const ctx = canvas.getContext("2d");
+/* =====================
+   STATE
+===================== */
 
-function resize(){
-  canvas.width = innerWidth * devicePixelRatio;
-  canvas.height = innerHeight * devicePixelRatio;
-}
+let coin = 0;
+let ballcoin = 0;
+let win = false;
 
-resize();
-addEventListener("resize", resize);
-
-const runtime = {
-  time:0,
-  dt:0,
-  last:0,
-  nodes:[]
+/* ball = error object */
+const ball = {
+  x:0,
+  y:0,
+  vx:0,
+  vy:0,
+  active:false
 };
 
-class Node{
-  constructor(x,y){
-    this.x = x;
-    this.y = y;
-    this.r = 40;
+/* target zone (skill check) */
+const target = {
+  x:0,
+  y:0,
+  r:80
+};
+
+/* =====================
+   INPUT (NO RANDOMNESS)
+===================== */
+
+addEventListener("pointerdown", () => {
+
+  // deterministic check: ball must be inside target
+  const dx = ball.x - target.x;
+  const dy = ball.y - target.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+
+  if(ball.active && dist < target.r){
+    hit();
+  } else {
+    miss();
   }
-
-  update(dt){
-    this.r =
-      40 +
-      Math.sin(runtime.time * 0.002) * 10;
-  }
-
-  render(ctx){
-    ctx.beginPath();
-    ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
-    ctx.strokeStyle = "white";
-    ctx.stroke();
-  }
-}
-
-runtime.nodes.push(
-  new Node(innerWidth/2, innerHeight/2)
-);
-
-function frame(t){
-
-  runtime.dt = t - runtime.last;
-  runtime.last = t;
-  runtime.time += runtime.dt;
-
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  ctx.save();
-  ctx.scale(devicePixelRatio,devicePixelRatio);
-
-  for(const node of runtime.nodes){
-    node.update(runtime.dt);
-    node.render(ctx);
-  }
-
-  ctx.restore();
-
-  requestAnimationFrame(frame);
-}
-
-requestAnimationFrame(frame);
-
-addEventListener("pointerdown", e => {
-
-  runtime.nodes.push(
-    new Node(e.clientX,e.clientY)
-  );
 
 });
+
+/* =====================
+   CORE RULES
+===================== */
+
+function hit(){
+  coin += 1;
+
+  // reposition target after success
+  target.x = Math.random() * c.width;
+  target.y = Math.random() * c.height;
+}
+
+function miss(){
+
+  ballcoin += 1;
+
+  ball.active = true;
+
+  ball.x = Math.random() * c.width;
+  ball.y = Math.random() * c.height;
+
+  ball.vx = (Math.random() - 0.5) * 6;
+  ball.vy = (Math.random() - 0.5) * 6;
+
+}
+
+/* =====================
+   BALL PHYSICS
+===================== */
+
+function updateBall(){
+
+  if(!ball.active) return;
+
+  ball.x += ball.vx;
+  ball.y += ball.vy;
+
+  ball.vx *= 0.98;
+  ball.vy *= 0.98;
+
+  if(ball.x < 0 || ball.x > c.width) ball.vx *= -1;
+  if(ball.y < 0 || ball.y > c.height) ball.vy *= -1;
+
+}
+
+/* =====================
+   WIN CONDITION
+===================== */
+
+function checkWin(){
+  if(coin >= 20) win = true;
+}
+
+/* =====================
+   INIT TARGET
+===================== */
+
+target.x = c.width/2;
+target.y = c.height/2;
+
+/* =====================
+   UPDATE
+===================== */
+
+function update(){
+  updateBall();
+  checkWin();
+}
+
+/* =====================
+   RENDER
+===================== */
+
+function render(){
+
+  ctx.clearRect(0,0,c.width,c.height);
+
+  /* target zone */
+  ctx.beginPath();
+  ctx.arc(target.x, target.y, target.r, 0, Math.PI*2);
+  ctx.strokeStyle = "rgba(255,255,255,0.3)";
+  ctx.stroke();
+
+  /* ball */
+  if(ball.active){
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, 12, 0, Math.PI*2);
+    ctx.fillStyle = "yellow";
+    ctx.fill();
+  }
+
+  /* UI */
+  ctx.fillStyle = "#fff";
+  ctx.font = "20px monospace";
+
+  ctx.fillText("coin: " + coin, 20, 30);
+  ctx.fillText("ballcoin: " + ballcoin, 20, 60);
+
+  if(win){
+    ctx.fillText("WIN STATE - STABLE SYSTEM", 20, 100);
+  }
+
+}
+
+/* =====================
+   LOOP
+===================== */
+
+function loop(){
+  update();
+  render();
+  requestAnimationFrame(loop);
+}
+
+loop();
 
 </script>
 
